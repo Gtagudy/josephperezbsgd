@@ -12,8 +12,9 @@ import { useSpring, animated } from '@react-spring/three';
 import { SpotLightHelper, DirectionalLightHelper, Vector3, Color } from 'three';
 import * as THREE from 'three';
 
-// Import our toon material
+// Import our toon material and presets
 import '../shaders/toon-enhanced/ToonEnhancedMaterial';
+import { getMaterialProperties } from '../materials/ToonMaterialPresets';
 
 // Moon component with subtle glow effect
 const Moon = () => {
@@ -54,8 +55,11 @@ const ToonObject = ({
   rimColor = new Color(1.0, 1.0, 1.0),
   rimIntensity = 0.5,
   specularIntensity = 0.5,
-  halftoneIntensity = 0.3
+  halftoneIntensity = 0.3,
+  materialType = 'default'
 }) => {
+  const preset = getMaterialProperties(materialType);
+
   return (
     <mesh position={position} rotation={rotation} scale={scale}>
       {geometry}
@@ -65,12 +69,12 @@ const ToonObject = ({
         outlineWidth={outlineWidth}
         rimColor={rimColor}
         rimPower={3.0}
-        rimIntensity={rimIntensity}
+        rimIntensity={preset.rimIntensity}
         specularColor={new Color(1.0, 1.0, 1.0)}
-        specularIntensity={specularIntensity}
-        specularShininess={32.0}
+        specularIntensity={preset.specularIntensity}
+        specularShininess={preset.specularShininess}
         halftoneScale={100.0}
-        halftoneIntensity={halftoneIntensity}
+        halftoneIntensity={preset.halftoneIntensity}
         lightIntensity={1.0}
       />
     </mesh>
@@ -120,14 +124,180 @@ const InteractiveObject = ({ position, scale, color, hoverColor, glowColor, onCl
   );
 };
 
+// Art supplies components
+const Easel = ({ position = [0, 0, 0] }) => {
+  return (
+    <group position={position}>
+      {/* Easel frame */}
+      <ToonObject
+        geometry={<boxGeometry args={[0.2, 4, 0.2]} />}
+        position={[-0.8, 0, 0]}
+        color={new Color(0.4, 0.2, 0.1)}
+        outlineWidth={0.02}
+      />
+      <ToonObject
+        geometry={<boxGeometry args={[0.2, 4, 0.2]} />}
+        position={[0.8, 0, 0]}
+        color={new Color(0.4, 0.2, 0.1)}
+        outlineWidth={0.02}
+      />
+      <ToonObject
+        geometry={<boxGeometry args={[1.8, 0.2, 0.2]} />}
+        position={[0, 1.5, 0]}
+        color={new Color(0.4, 0.2, 0.1)}
+        outlineWidth={0.02}
+      />
+      {/* Canvas */}
+      <ToonObject
+        geometry={<boxGeometry args={[2, 2.5, 0.1]} />}
+        position={[0, 1, 0.1]}
+        color={new Color(0.95, 0.95, 0.9)}
+        outlineWidth={0.02}
+      />
+    </group>
+  );
+};
+
+const ArtSupplies = ({ position = [0, 0, 0] }) => {
+  return (
+    <group position={position}>
+      {/* Paint palette */}
+      <ToonObject
+        geometry={<cylinderGeometry args={[0.4, 0.4, 0.05, 32]} />}
+        position={[0.5, 0.025, 0]}
+        color={new Color(0.6, 0.3, 0.2)}
+        outlineWidth={0.02}
+      />
+      {/* Paint tubes */}
+      {[0, 0.2, 0.4].map((x, i) => (
+        <ToonObject
+          key={`paint-${i}`}
+          geometry={<cylinderGeometry args={[0.05, 0.05, 0.3, 16]} />}
+          position={[x, 0.15, 0.3]}
+          rotation={[Math.PI/2, 0, 0]}
+          color={new Color(Math.random(), Math.random(), Math.random())}
+          outlineWidth={0.02}
+        />
+      ))}
+    </group>
+  );
+};
+
+// Writing area components
+const Typewriter = ({ position = [0, 0, 0] }) => {
+  return (
+    <group position={position}>
+      {/* Main body */}
+      <ToonObject
+        geometry={<boxGeometry args={[1.2, 0.6, 0.8]} />}
+        position={[0, 0, 0]}
+        color={new Color(0.2, 0.2, 0.2)}
+        outlineWidth={0.02}
+      />
+      {/* Paper roller */}
+      <ToonObject
+        geometry={<cylinderGeometry args={[0.1, 0.1, 1.4, 16]} />}
+        position={[0, 0.3, 0]}
+        rotation={[0, 0, Math.PI/2]}
+        color={new Color(0.8, 0.8, 0.8)}
+        outlineWidth={0.02}
+      />
+    </group>
+  );
+};
+
+const WritingBoard = ({ position = [0, 0, 0] }) => {
+  return (
+    <group position={position}>
+      {/* Cork board */}
+      <ToonObject
+        geometry={<boxGeometry args={[3, 2, 0.1]} />}
+        position={[0, 0, 0]}
+        color={new Color(0.8, 0.6, 0.4)}
+        outlineWidth={0.02}
+      />
+      {/* Posted notes */}
+      {[[-0.8, 0.5], [0, -0.3], [0.7, 0.2]].map(([x, y], i) => (
+        <ToonObject
+          key={`note-${i}`}
+          geometry={<boxGeometry args={[0.4, 0.4, 0.01]} />}
+          position={[x, y, 0.06]}
+          color={new Color(1, 1, 0.8)}
+          outlineWidth={0.01}
+        />
+      ))}
+    </group>
+  );
+};
+
+// Developer area components
+const MonitorSetup = ({ position = [0, 0, 0] }) => {
+  return (
+    <group position={position}>
+      {/* Main monitor */}
+      <ToonObject
+        geometry={<boxGeometry args={[2, 1.2, 0.1]} />}
+        position={[0, 1, 0]}
+        color={new Color(0.1, 0.1, 0.1)}
+        outlineWidth={0.02}
+      />
+      {/* Screen content */}
+      <ToonObject
+        geometry={<boxGeometry args={[1.9, 1.1, 0.01]} />}
+        position={[0, 1, 0.06]}
+        color={new Color(0.2, 0.2, 0.25)}
+        outlineWidth={0.01}
+      />
+      {/* Monitor stand */}
+      <ToonObject
+        geometry={<boxGeometry args={[0.2, 0.8, 0.2]} />}
+        position={[0, 0.4, 0]}
+        color={new Color(0.3, 0.3, 0.3)}
+        outlineWidth={0.02}
+      />
+      {/* Secondary monitor */}
+      <ToonObject
+        geometry={<boxGeometry args={[1.5, 1, 0.1]} />}
+        position={[1.8, 0.8, 0]}
+        rotation={[0, -Math.PI/12, 0]}
+        color={new Color(0.1, 0.1, 0.1)}
+        outlineWidth={0.02}
+      />
+    </group>
+  );
+};
+
+const GameDevTools = ({ position = [0, 0, 0] }) => {
+  return (
+    <group position={position}>
+      {/* 3D model reference */}
+      <ToonObject
+        geometry={<boxGeometry args={[0.8, 0.8, 0.8]} />}
+        position={[0, 0.4, 0]}
+        color={new Color(0.5, 0.7, 0.9)}
+        outlineWidth={0.02}
+      />
+      {/* Game controller */}
+      <ToonObject
+        geometry={<boxGeometry args={[0.6, 0.2, 0.4]} />}
+        position={[1, 0, 0]}
+        color={new Color(0.2, 0.2, 0.2)}
+        outlineWidth={0.02}
+      />
+    </group>
+  );
+};
+
 const RoomScene = ({ setCurrentSection, setContentVisible }) => {
   const spotLight = useRef();
   const dirLight = useRef();
   const moonLight = useRef();
+  const fillLight = useRef();
 
   // Debug helpers (comment out in production)
   useHelper(spotLight, SpotLightHelper, 'white');
   useHelper(dirLight, DirectionalLightHelper, 1, 'red');
+  useHelper(fillLight, DirectionalLightHelper, 1, 'blue');
 
   const handleObjectClick = (section) => {
     setCurrentSection(section);
@@ -176,10 +346,43 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
       <directionalLight
         ref={moonLight}
         position={[-80, 60, -120]}
-        intensity={0.2}
+        intensity={0.3}
         color="#E6E6FA"
         castShadow
       />
+
+      {/* Main Room Lighting */}
+      {/* Key Light - Main dramatic light */}
+      <spotLight
+        ref={spotLight}
+        position={[0, 15, -5]}
+        angle={Math.PI / 4}
+        penumbra={0.2}
+        intensity={0.8}
+        color="#FFE5B4"
+        castShadow={false}
+      />
+
+      {/* Fill Light - Soft fill from opposite side */}
+      <directionalLight
+        ref={fillLight}
+        position={[-10, 10, 5]}
+        intensity={0.3}
+        color="#B4E5FF"
+        castShadow={false}
+      />
+
+      {/* Rim Light - Creates edge highlights */}
+      <directionalLight
+        ref={dirLight}
+        position={[10, 10, 5]}
+        intensity={0.4}
+        color="#FFFFFF"
+        castShadow={false}
+      />
+
+      {/* Ambient Light - Reduced for more dramatic shadows */}
+      <ambientLight intensity={0.4} color="#404040" />
 
       {/* Building Structure */}
       {/* Building Exterior - Front */}
@@ -188,6 +391,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         position={[0, -75.5, 9.5]}
         color={new Color(0.17, 0.24, 0.31)}
         outlineWidth={0.02}
+        materialType="metal"
       />
 
       {/* Building Exterior - Left Side */}
@@ -196,6 +400,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         position={[-10.5, -75, -0.7]}
         color={new Color(0.17, 0.24, 0.31)}
         outlineWidth={0.02}
+        materialType="metal"
       />
 
       {/* Building Exterior - Right Side */}
@@ -204,6 +409,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         position={[9.6, -75.5, 0]}
         color={new Color(0.17, 0.24, 0.31)}
         outlineWidth={0.02}
+        materialType="metal"
       />
 
       {/* Floor */}
@@ -213,6 +419,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         rotation={[-Math.PI / 2, 0, 0]}
         color={new Color(0.24, 0.15, 0.14)}
         outlineWidth={0.01}
+        materialType="wood"
       />
 
       {/* Roof */}
@@ -222,6 +429,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         rotation={[-Math.PI / 2, 0, 0]}
         color={new Color(0.17, 0.09, 0.06)}
         outlineWidth={0.01}
+        materialType="wood"
       />
 
       {/* Back Wall with Window */}
@@ -232,24 +440,28 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
           position={[0, 10.4, 0]}
           color={new Color(0.83, 0.33, 0)}
           outlineWidth={0.02}
+          materialType="plastic"
         />
         <ToonObject
           geometry={<boxGeometry args={[20, 12, 0.6]} />}
           position={[0, -10.4, 0]}
           color={new Color(0.83, 0.33, 0)}
           outlineWidth={0.02}
+          materialType="plastic"
         />
         <ToonObject
           geometry={<boxGeometry args={[5, 16, 0.6]} />}
           position={[-7.5, 0, 0]}
           color={new Color(0.83, 0.33, 0)}
           outlineWidth={0.02}
+          materialType="plastic"
         />
         <ToonObject
           geometry={<boxGeometry args={[5, 15, 0.6]} />}
           position={[7.5, 0, 0]}
           color={new Color(0.83, 0.33, 0)}
           outlineWidth={0.02}
+          materialType="plastic"
         />
 
         {/* Window Frame */}
@@ -268,7 +480,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
               position={frame.pos}
               color={new Color(0.545, 0.271, 0.075)}
               outlineWidth={0.01}
-              specularIntensity={0.3}
+              materialType="wood"
             />
           ))}
         </group>
@@ -281,7 +493,37 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         rotation={[0, Math.PI / 2, 0]}
         color={new Color(0.83, 0.33, 0)}
         outlineWidth={0.02}
+        materialType="plastic"
       />
+
+      {/* Right Wall */}
+      <ToonObject
+        geometry={<boxGeometry args={[0.5, 20, 20]} />}
+        position={[9.6, 10, 0]}
+        color={new Color(0.83, 0.33, 0)}
+        outlineWidth={0.02}
+        materialType="plastic"
+      />
+
+      {/* Additional Window in Right Wall */}
+      <group position={[9.5, 10, 0]}>
+        {/* Window Frame */}
+        <ToonObject
+          geometry={<boxGeometry args={[0.5, 6, 4]} />}
+          position={[0, 0, 0]}
+          color={new Color(0.545, 0.271, 0.075)}
+          outlineWidth={0.02}
+          materialType="wood"
+        />
+        {/* Glass */}
+        <ToonObject
+          geometry={<boxGeometry args={[0.1, 5.5, 3.5]} />}
+          position={[0.1, 0, 0]}
+          color={new Color(0.65, 0.85, 1)}
+          outlineWidth={0.01}
+          materialType="glass"
+        />
+      </group>
 
       {/* City Buildings */}
       {createCityBuildings(0, -50, 8)}  // Central cluster
@@ -295,41 +537,41 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
       {createCityBuildings(45, -30, 4)}   // Near right
       {createCityBuildings(50, -60, 6)}   // Deep right
 
-      {/* Desk Group - Positioned near window but inside room */}
-      <group position={[0, 0, 0]}>  {/* Adjusted Z position to be inside room */}
+      {/* Desk Group */}
+      <group position={[0, 0, 0]}>
         {/* Table/Desk */}
         <ToonObject
-          geometry={<boxGeometry args={[10, 0.3, 5]} />}
-          position={[0, 3, -8]}
+          geometry={<boxGeometry args={[10, 0.3, 6]} />}
+          position={[0, 5, -7.4]}
           color={new Color(0.545, 0.271, 0.075)}
           outlineWidth={0.02}
-          specularIntensity={0.3}
+          materialType="wood"
         />
         
         {/* Table/Desk Legs */}
         {[
-          [-4.8, 1.5, -9.2],  // Adjusted leg positions relative to desk
+          [-4.8, 1.5, -9.2],
           [4.8, 1.5, -9.2],
-          [-4.8, 1.5, -6.8],
-          [4.8, 1.5, -6.8]
+          [-4.8, 1.5, -5.8],
+          [4.8, 1.5, -5.8]
         ].map((pos, idx) => (
           <ToonObject
             key={`desk-leg-${idx}`}
-            geometry={<boxGeometry args={[0.3, 3, 0.3]} />}
+            geometry={<boxGeometry args={[0.4,7, 0.3]} />}
             position={pos}
             color={new Color(0.545, 0.271, 0.075)}
             outlineWidth={0.02}
-            specularIntensity={0.3}
+            materialType="wood"
           />
         ))}
 
         {/* Interactive Objects */}
         {/* Laptop - Projects */}
-        <group position={[0, 3.4, -9]} rotation={[-0.1, 0, 0]}>
+        <group position={[0, 5.3, -9]} rotation={[-0.1, 0, 0]}>
           {/* Screen */}
           <InteractiveObject
-            position={[0, 0.8, 0]}
-            scale={[2.5, 1.5, 0.1]}
+            position={[0, 1, 0]}
+            scale={[3, 2, 0.2]}
             color="#2196f3"
             hoverColor="#1976d2"
             glowColor="#64b5f6"
@@ -339,8 +581,8 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
           </InteractiveObject>
           {/* Base */}
           <InteractiveObject
-            position={[0, 0, 0.6]}
-            scale={[2.5, 0.1, 1]}
+            position={[0, 0, 1.5]}
+            scale={[2.8, 0.1, 2]}
             color="#1976d2"
             hoverColor="#1565c0"
             glowColor="#64b5f6"
@@ -351,7 +593,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         </group>
 
         {/* Phone - Contact */}
-        <group position={[2.8, 4, -8]} rotation={[-0.5, 0, Math.PI / 2]}>
+        <group position={[2.8, 6, -8]} rotation={[-0.5, 0, Math.PI / 2]}>
           {/* Phone Body */}
           <InteractiveObject
             position={[0, 0, 0]}
@@ -377,7 +619,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         </group>
 
         {/* Drawing Tablet - About Me */}
-        <group position={[-3, 3.4, -7]} rotation={[-0.4, 0.5, 0]}>
+        <group position={[-3, 5, -7]} rotation={[-0.4, 0.5, 0]}>
           {/* Tablet Stand */}
           <InteractiveObject
             position={[0, 1, -0.2]}
@@ -436,11 +678,11 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         </group>
 
         {/* Keyboard - Home */}
-        <group position={[0, 3.4, -7]}>
+        <group position={[0, 5.5, -7]}>
           {/* Keyboard Base */}
           <InteractiveObject
             position={[0, 0, 0]}
-            scale={[2.2, 0.2, 1]}
+            scale={[3, 0.2, 2]}
             color="#ffd700"
             hoverColor="#ffa000"
             glowColor="#ffeb3b"
@@ -451,7 +693,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
           {/* Key Layout */}
           <InteractiveObject
             position={[0, 0.11, 0]}
-            scale={[2.1, 0.1, 0.9]}
+            scale={[2.9, 0.1, 1.7]}
             color="#ffb300"
             hoverColor="#ff8f00"
             glowColor="#ffeb3b"
@@ -462,221 +704,330 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         </group>
       </group>
 
-      {/* Wall Decorations */}
-      <group>
-        {/* Modern Clock */}
-        <group position={[-9.5, 15, 0]} rotation={[0, Math.PI, Math.PI / 2]}>
-          {/* Clock Face */}
+      {/* Left Wall Furniture */}
+      {/* Filing Cabinet */}
+      <group position={[-8, 0, -6]} rotation={[0, Math.PI / 4, 0]}>
+        {/* Cabinet Base */}
+        <ToonObject
+          geometry={<boxGeometry args={[4, 10, 3]} />}
+          position={[0, 4, 0]}
+          color={new Color(0.3, 0.3, 0.35)}
+          outlineWidth={0.02}
+          materialType="metal"
+        />
+        {/* Drawer Handles */}
+        {[1, 3, 5, 7].map((y, i) => (
           <ToonObject
-            geometry={<cylinderGeometry args={[1.5, 1.5, 0.1, 32]} />}
+            key={`handle-${i}`}
+            geometry={<boxGeometry args={[0.8, 0.2, 0.2]} />}
+            position={[0, y, 1.6]}
+            color={new Color(0.7, 0.7, 0.7)}
+            outlineWidth={0.01}
+            materialType="metal"
+          />
+        ))}
+      </group>
+
+      {/* Mini Fridge */}
+      <group position={[-7, 0, 3]} rotation={[0, -Math.PI / 2, 0]}>
+        <ToonObject
+          geometry={<boxGeometry args={[3.6, 5, 3]} />}
+          position={[0, 2.5, 0]}
+          color={new Color(0.9, 0.9, 0.9)}
+          outlineWidth={0.02}
+          materialType="metal"
+        />
+        {/* Handle */}
+        <ToonObject
+          geometry={<boxGeometry args={[0.5, 0.5, 0.3]} />}
+          position={[1.5, 3, -2]}
+          color={new Color(0.8, 0.8, 0.8)}
+          outlineWidth={0.01}
+          materialType="metal"
+        />
+      </group>
+
+      {/* Right Wall Furniture */}
+      {/* Couch */}
+      <group position={[6, 0, 0]} rotation={[0, -Math.PI /100, 0]}>
+        {/* Base */}
+        <ToonObject
+          geometry={<boxGeometry args={[4, 0.5, 9]} />}
+          position={[1, 0.3, 2]}
+          color={new Color(0.2, 0.4, 0.6)}
+          outlineWidth={0.02}
+          materialType="fabric"
+        />
+        {/* Enhanced Back Rest */}
+        <ToonObject
+          geometry={<boxGeometry args={[0.9, 5, 10]} />}
+          position={[3, 2.5, 1.5]}
+          rotation={[Math.PI, 0, 0]}
+          color={new Color(0.2, 0.4, 0.6)}
+          outlineWidth={0.02}
+          materialType="fabric"
+        />
+        {/* Side Arms */}
+        <ToonObject
+          geometry={<boxGeometry args={[4, 3, 1]} />}
+          position={[1, 2, 6]}
+          color={new Color(0.2, 0.4, 0.6)}
+          outlineWidth={0.02}
+          materialType="fabric"
+        />
+        <ToonObject
+          geometry={<boxGeometry args={[4, 3, 1]} />}
+          position={[1, 2, -3]}
+          color={new Color(0.2, 0.4, 0.6)}
+          outlineWidth={0.02}
+          materialType="fabric"
+        />
+        {/* Cushions */}
+        {[-1, 0, 1].map((x, i) => (
+          <ToonObject
+            key={`cushion-${i}`}
+            geometry={<boxGeometry args={[1.7, 1.2, 8]} />}
+            position={[x * 1.8, 1.2, 1.5]}
+            color={new Color(0.25, 0.45, 0.65)}
+            outlineWidth={0.01}
+            materialType="fabric"
+          />
+        ))}
+      </group>
+
+      {/* Plant Corner */}
+      <group position={[7, 0, -1]}>
+        {/* Plant Pot */}
+        <ToonObject
+          geometry={<cylinderGeometry args={[0.6, 0.4, 1, 32]} />}
+          position={[0, 0.5, 0]}
+          color={new Color(0.6, 0.3, 0.2)}
+          outlineWidth={0.02}
+          materialType="plastic"
+        />
+        {/* Plant */}
+        <ToonObject
+          geometry={<sphereGeometry args={[1, 32, 32]} />}
+          position={[0, 1.8, 0]}
+          color={new Color(0.2, 0.5, 0.3)}
+          outlineWidth={0.02}
+          materialType="fabric"
+        />
+      </group>
+
+      {/* Side Table */}
+      <group position={[7, 3, -9]}>
+        {/* Table Top */}
+        <ToonObject
+          geometry={<boxGeometry args={[4, 0.1, 4]} />}
+          position={[0, 1.5, 2]}
+          color={new Color(0.4, 0.2, 0.1)}
+          outlineWidth={0.02}
+          materialType="wood"
+        />
+        {/* Table Leg */}
+        <ToonObject
+          geometry={<cylinderGeometry args={[0.2, 0.2, 5, 8]} />}
+          position={[0, -1, 1]}
+          color={new Color(0.35, 0.15, 0.05)}
+          outlineWidth={0.01}
+          materialType="metal"
+        />
+        {/* Table Base */}
+        <ToonObject
+          geometry={<cylinderGeometry args={[0.4, 0.4, 0.1, 8]} />}
+          position={[-0, -2.9, 1]}
+          color={new Color(0.35, 0.15, 0.05)}
+          outlineWidth={0.01}
+          materialType="metal"
+        />
+        {/* Lamp */}
+        <group position={[0, 1.55, 2]}>
+          {/* Base */}
+          <ToonObject
+            geometry={<cylinderGeometry args={[0.2, 0.2, 0.1, 16]} />}
             position={[0, 0, 0]}
-            color={new Color(0.93, 0.94, 0.95)}
-            outlineWidth={0.03}
-          />
-          {/* Clock Center and Hands */}
-          <ToonObject
-            geometry={<cylinderGeometry args={[0.1, 0.1, 0.1, 16]} />}
-            position={[0, 0, 0.06]}
-            color={new Color(0.17, 0.24, 0.31)}
+            color={new Color(0.2, 0.2, 0.2)}
             outlineWidth={0.01}
+            materialType="metal"
           />
+          {/* Stem */}
           <ToonObject
-            geometry={<boxGeometry args={[0.8, 0.08, 0.02]} />}
-            position={[-0.4, 0.1, 0]}
-            rotation={[0, 0, Math.PI]}
-            color={new Color(0.17, 0.24, 0.31)}
+            geometry={<cylinderGeometry args={[0.1, 0.1, 2, 8]} />}
+            position={[0, 0.8, 0]}
+            color={new Color(0.2, 0.2, 0.2)}
             outlineWidth={0.01}
+            materialType="metal"
           />
+          {/* Shade */}
           <ToonObject
-            geometry={<boxGeometry args={[1.2, 0.06, 0.02]} />}
-            position={[0.5, 0.1, 0]}
-            rotation={[0, 0, Math.PI]}
-            color={new Color(0.17, 0.24, 0.31)}
+            geometry={<cylinderGeometry args={[0.8, 0.5, 0.7, 16]} />}
+            position={[0, 2, 0]}
+            color={new Color(0.9, 0.9, 0.8)}
             outlineWidth={0.01}
+            materialType="fabric"
           />
-        </group>
-
-        {/* Floating Shelves with Books */}
-        <group position={[-9.5, 8, -5]} rotation={[0, Math.PI / 2, 0]}>
-          {/* Upper Shelf */}
-          <ToonObject
-            geometry={<boxGeometry args={[4, 0.2, 1]} />}
-            position={[0, 0, 0]}
-            color={new Color(0.29, 0.29, 0.29)}
-            outlineWidth={0.02}
-          />
-          {/* Books on Upper Shelf */}
-          {[...Array(6)].map((_, i) => (
-            <ToonObject
-              key={`book-upper-${i}`}
-              geometry={<boxGeometry args={[0.4, 1.2, 0.8]} />}
-              position={[-1.5 + i * 0.5, 0.7, 0]}
-              rotation={[0, Math.random() * 0.2 - 0.1, 0]}  // Slight random rotation
-              color={new Color(
-                0.2 + Math.random() * 0.6,
-                0.2 + Math.random() * 0.6,
-                0.2 + Math.random() * 0.6
-              )}
-              outlineWidth={0.01}
-            />
-          ))}
-          
-          {/* Lower Shelf */}
-          <ToonObject
-            geometry={<boxGeometry args={[4, 0.2, 1]} />}
-            position={[0, -2, 0]}
-            color={new Color(0.29, 0.29, 0.29)}
-            outlineWidth={0.02}
-          />
-          {/* Books on Lower Shelf */}
-          {[...Array(5)].map((_, i) => (
-            <ToonObject
-              key={`book-lower-${i}`}
-              geometry={<boxGeometry args={[0.4, 1.2, 0.8]} />}
-              position={[-1.0 + i * 0.5, -1.3, 0]}
-              rotation={[0, Math.random() * 0.2 - 0.1, 0]}  // Slight random rotation
-              color={new Color(
-                [0.25, 0.0, 0.71],  // Blue
-                [0.0, 0.59, 0.53],   // Teal
-                [1.0, 0.76, 0.03],   // Yellow
-                [0.38, 0.49, 0.55],  // Gray
-                [0.91, 0.12, 0.39]   // Pink
-              )[i]}
-              outlineWidth={0.01}
-            />
-          ))}
-        </group>
-
-        {/* Wall Art */}
-        <group position={[9.5, 8, -2]} rotation={[0, -Math.PI / 2, 0]}>
-          {/* Frame */}
-          <ToonObject
-            geometry={<boxGeometry args={[4, 3, 0.1]} />}
-            position={[9.5, 8, -2]}
-            rotation={[0, -Math.PI / 2, 0]}
-            color={new Color(0.17, 0.22, 0.24)}
-          />
-          {/* Art Canvas */}
-          <mesh position={[0, 0, 0.06]}>
-            <boxGeometry args={[3.8, 2.8, 0.05]} />
-            <meshStandardMaterial 
-              color="#34495e"
-              emissive="#3498db"
-              emissiveIntensity={0.2}
-              metalness={0.3}
-              roughness={0.7}
-            />
-          </mesh>
-        </group>
-
-        {/* Posters */}
-        <group position={[9.5, 12, -5]}>
-          {/* Poster 1 */}
-          <mesh rotation={[0, -Math.PI / 2, 0]}>
-            <planeGeometry args={[3, 4]} />
-            <meshStandardMaterial color="#ff6b6b" />
-          </mesh>
-        </group>
-
-        <group position={[9.5, 12, 2]}>
-          {/* Poster 2 */}
-          <mesh rotation={[0, -Math.PI / 2, 0]}>
-            <planeGeometry args={[2.5, 3.5]} />
-            <meshStandardMaterial color="#4ecdc4" />
-          </mesh>
-        </group>
-
-        <group position={[-9.5, 12, 5]}>
-          {/* Poster 3 */}
-          <mesh rotation={[0, Math.PI / 2, 0]}>
-            <planeGeometry args={[3, 4]} />
-            <meshStandardMaterial color="#45b7d1" />
-          </mesh>
         </group>
       </group>
 
-      {/* Floor Rug - Raised slightly */}
+      {/* Wall Decorations */}
+      {/* Modern Clock */}
+      <group position={[-9.5, 15, 0]} rotation={[0, Math.PI, Math.PI / 2]}>
+        {/* Clock Face */}
+        <ToonObject
+          geometry={<cylinderGeometry args={[1.5, 1.5, 0.1, 32]} />}
+          position={[0, 0, 0]}
+          color={new Color(0.93, 0.94, 0.95)}
+          outlineWidth={0.03}
+          materialType="plastic"
+        />
+        {/* Clock Center and Hands */}
+        <ToonObject
+          geometry={<cylinderGeometry args={[0.1, 0.1, 0.1, 16]} />}
+          position={[0, 0, 0.06]}
+          color={new Color(0.17, 0.24, 0.31)}
+          outlineWidth={0.01}
+          materialType="metal"
+        />
+        <ToonObject
+          geometry={<boxGeometry args={[0.8, 0.08, 0.02]} />}
+          position={[-0.4, 0.1, 0]}
+          rotation={[0, 0, Math.PI]}
+          color={new Color(0.17, 0.24, 0.31)}
+          outlineWidth={0.01}
+          materialType="metal"
+        />
+        <ToonObject
+          geometry={<boxGeometry args={[1.2, 0.06, 0.02]} />}
+          position={[0.5, 0.1, 0]}
+          rotation={[0, 0, Math.PI]}
+          color={new Color(0.17, 0.24, 0.31)}
+          outlineWidth={0.01}
+          materialType="metal"
+        />
+      </group>
+
+      {/* Floating Shelves with Books */}
+      <group position={[-8, 11, 1]} rotation={[0, Math.PI / 2, 0]}>
+        {/* Upper Shelf */}
+        <ToonObject
+          geometry={<boxGeometry args={[8, 0.4, 2]} />}
+          position={[0, 0, 0]}
+          color={new Color(0.29, 0.29, 0.29)}
+          outlineWidth={0.02}
+          materialType="wood"
+        />
+        {/* Books on Upper Shelf */}
+        {[...Array(6)].map((_, i) => (
+          <ToonObject
+            key={`book-upper-${i}`}
+            geometry={<boxGeometry args={[0.8, 2, 1.5]} />}
+            position={[-3 + i * 1, 1, 0]}
+            rotation={[0, Math.random() * 0.2 - 0.1, 0]}
+            color={new Color(
+              0.2 + Math.random() * 0.6,
+              0.2 + Math.random() * 0.6,
+              0.2 + Math.random() * 0.6
+            )}
+            outlineWidth={0.01}
+            materialType="plastic"
+          />
+        ))}
+        
+        {/* Lower Shelf */}
+        <ToonObject
+          geometry={<boxGeometry args={[6, 0.4, 2]} />}
+          position={[0, -4, 0]}
+          color={new Color(0.29, 0.29, 0.29)}
+          outlineWidth={0.02}
+          materialType="wood"
+        />
+        {/* Books on Lower Shelf */}
+        {[...Array(5)].map((_, i) => (
+          <ToonObject
+            key={`book-lower-${i}`}
+            geometry={<boxGeometry args={[0.8, 2, 1.3]} />}
+            position={[-2 + i * 1, -2.6, 0]}
+            rotation={[0, Math.random() * 0.2 - 0.1, 0]}
+            color={new Color(
+              [0.25, 0.0, 0.71],  // Blue
+              [0.0, 0.59, 0.53],   // Teal
+              [1.0, 0.76, 0.03],   // Yellow
+              [0.38, 0.49, 0.55],  // Gray
+              [0.91, 0.12, 0.39]   // Pink
+            )[i]}
+            outlineWidth={0.01}
+            materialType="plastic"
+          />
+        ))}
+      </group>
+
+      {/* Wall Art and Posters */}
+      {/* Art Frame */}
+      <group position={[9.5, 8, -2]} rotation={[0, -Math.PI / 2, 0]}>
+        {/* Frame */}
+        <ToonObject
+          geometry={<boxGeometry args={[4, 3, 0.1]} />}
+          position={[0, 0, 0]}
+          color={new Color(0.17, 0.22, 0.24)}
+          outlineWidth={0.02}
+          materialType="wood"
+        />
+        {/* Art Canvas */}
+        <ToonObject
+          geometry={<boxGeometry args={[3.8, 2.8, 0.05]} />}
+          position={[0, 0, 0.06]}
+          color={new Color(0.2, 0.27, 0.37)}
+          outlineWidth={0.01}
+          materialType="fabric"
+        />
+      </group>
+
+      {/* Posters */}
+      <group position={[0, 0, 0]}>
+        {/* Poster 1 - Game Art */}
+        <ToonObject
+          geometry={<planeGeometry args={[5, 5]} />}
+          position={[0, 0, 0]}
+          rotation={[0, -Math.PI / 2, 0]}
+          color={new Color(0.95, 0.3, 0.3)}
+          outlineWidth={0.02}
+          materialType="plastic"
+        />
+      </group>
+
+      <group position={[9.5, 12, 2]}>
+        {/* Poster 2 - Tech/Code themed */}
+        <ToonObject
+          geometry={<planeGeometry args={[4, 3.5]} />}
+          position={[0, 0, 0]}
+          rotation={[0, -Math.PI / 2, 0]}
+          color={new Color(0.3, 0.8, 0.7)}
+          outlineWidth={0.02}
+          materialType="plastic"
+        />
+      </group>
+
+      <group position={[-9.5, 12, 7]}>
+        {/* Poster 3 - Art/Creative themed */}
+        <ToonObject
+          geometry={<planeGeometry args={[5, 7]} />}
+          position={[0, 0, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          color={new Color(0.27, 0.72, 0.82)}
+          outlineWidth={0.02}
+          materialType="plastic"
+        />
+      </group>
+
+      {/* Floor Rug */}
       <ToonObject
         geometry={<planeGeometry args={[12, 8]} />}
-        position={[0, 0.02, -4]}  // Raised slightly
+        position={[0, 0.02, -4]}
         rotation={[-Math.PI / 2, 0, 0]}
-        color={new Color(0.56, 0.27, 0.68)}  // #8e44ad in RGB
+        color={new Color(0.56, 0.27, 0.68)}
         outlineWidth={0.01}
-        specularIntensity={0.1}
-        halftoneIntensity={0.2}
-      />
-
-      {/* Backpack */}
-      <group position={[-4, 0.8, -7]}>
-        {/* Main body */}
-        <mesh>
-          <boxGeometry args={[2, 2.5, 1]} />
-          <meshStandardMaterial color="#34495e" roughness={0.9} />
-        </mesh>
-        {/* Front pocket */}
-        <mesh position={[0, -0.5, 0.6]}>
-          <boxGeometry args={[1.5, 1.2, 0.3]} />
-          <meshStandardMaterial color="#2c3e50" roughness={0.9} />
-        </mesh>
-        {/* Straps */}
-        <mesh position={[-0.7, 0, -0.2]}>
-          <boxGeometry args={[0.2, 2, 0.1]} />
-          <meshStandardMaterial color="#2c3e50" roughness={0.9} />
-        </mesh>
-        <mesh position={[0.7, 0, -0.2]}>
-          <boxGeometry args={[0.2, 2, 0.1]} />
-          <meshStandardMaterial color="#2c3e50" roughness={0.9} />
-        </mesh>
-      </group>
-
-      {/* Additional Window */}
-      <group position={[9.5, 10, 0]}>
-        {/* Window Frame */}
-        <mesh>
-          <boxGeometry args={[0.5, 6, 4]} />
-          <meshStandardMaterial color="#8b4513" roughness={0.8} />
-        </mesh>
-        {/* Glass */}
-        <mesh position={[0.1, 0, 0]}>
-          <boxGeometry args={[0.1, 5.5, 3.5]} />
-          <meshStandardMaterial 
-            color="#a5d8ff" 
-            transparent={true} 
-            opacity={0.3}
-            metalness={0.9}
-            roughness={0.1}
-          />
-        </mesh>
-      </group>
-
-      {/* Right Wall (Half Height) */}
-      <mesh position={[9.9, 5, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-        <boxGeometry args={[20, 10, 0.6]} />
-        <meshStandardMaterial 
-          color="#d35400" 
-          roughness={0.7}
-          transparent={true}
-          opacity={0.9}
-        />
-      </mesh>
-
-      {/* Lighting */}
-      <ambientLight intensity={0.7} />
-      
-      <spotLight
-        ref={spotLight}
-        position={[0, 15, -5]}
-        angle={Math.PI / 4}
-        penumbra={0.5}
-        intensity={0.5}
-        castShadow={false}
-      />
-
-      <directionalLight
-        ref={dirLight}
-        position={[10, 10, 5]}
-        intensity={0.4}
-        castShadow={false}
+        materialType="fabric"
       />
     </>
   );
