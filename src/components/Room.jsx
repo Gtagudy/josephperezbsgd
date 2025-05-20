@@ -1,20 +1,25 @@
-import React, { Suspense, useState, useRef } from 'react';
-import { Canvas, useFrame, extend } from '@react-three/fiber';
+import React, { Suspense, useState, useRef, useEffect } from 'react';
+import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
   Environment, 
   PerspectiveCamera,
   useHelper,
   MeshDistortMaterial,
-  shaderMaterial
+  shaderMaterial,
+  Instances,
+  Instance
 } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
-import { SpotLightHelper, DirectionalLightHelper, Vector3, Color } from 'three';
+import { SpotLightHelper, DirectionalLightHelper, Vector3, Color, LOD } from 'three';
 import * as THREE from 'three';
+import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { BlendFunction } from 'postprocessing';
 
 // Import our toon material and presets
 import '../shaders/toon-enhanced/ToonEnhancedMaterial';
 import { getMaterialProperties } from '../materials/ToonMaterialPresets';
+import { CityLOD } from './city';
 
 // Moon component with subtle glow effect
 const Moon = () => {
@@ -288,56 +293,277 @@ const GameDevTools = ({ position = [0, 0, 0] }) => {
   );
 };
 
+// Create materials for buildings with different detail levels
+const createBuildingMaterials = (detailLevel) => {
+  const baseMaterial = new THREE.MeshStandardMaterial({
+    color: new Color(0.1, 0.1, 0.15),
+    metalness: 0.2,
+    roughness: 0.7,
+    emissive: new Color(0.05, 0.05, 0.1),
+    emissiveIntensity: 0.5
+  });
+
+  if (detailLevel === 'high') {
+    // Add window material for high detail
+    const windowMaterial = new THREE.MeshStandardMaterial({
+      color: new Color(0.9, 0.9, 0.7),
+      emissive: new Color(0.9, 0.9, 0.7),
+      emissiveIntensity: 0.8,
+      transparent: true,
+      opacity: 0.9
+    });
+    return { base: baseMaterial, windows: windowMaterial };
+  }
+
+  return { base: baseMaterial };
+};
+
+const createCityBuildings = (offsetX, offsetZ, count = 5, detailLevel = 'high') => {
+  const buildings = [];
+  const materials = createBuildingMaterials(detailLevel);
+  
+  for (let i = 0; i < count; i++) {
+    const height = Math.random() * 60 + 30;
+    const width = Math.random() * 6 + 6;
+    const depth = Math.random() * 6 + 6;
+    const x = (Math.random() - 0.5) * 40 + offsetX;
+    const z = (Math.random() - 0.5) * 40 + offsetZ;
+    
+    // Create building group
+    const buildingGroup = new THREE.Group();
+    
+    // Main building structure
+    const building = new THREE.Mesh(
+      new THREE.BoxGeometry(width, height, depth, 
+        detailLevel === 'high' ? 2 : 1,
+        detailLevel === 'high' ? 2 : 1,
+        detailLevel === 'high' ? 2 : 1
+      ),
+      materials.base.clone()
+    );
+    
+    building.position.set(0, 0, 0);
+    building.castShadow = true;
+    building.receiveShadow = true;
+    buildingGroup.add(building);
+
+    // Add windows for high detail buildings
+    if (detailLevel === 'high' && materials.windows) {
+      const windowSize = 0.8;
+      const windowSpacing = 1.2;
+      const windowDepth = 0.1;
+      
+      // Calculate number of windows
+      const windowsX = Math.floor(width / windowSpacing);
+      const windowsY = Math.floor(height / windowSpacing);
+      const windowsZ = Math.floor(depth / windowSpacing);
+      
+      // Create window geometry
+      const windowGeometry = new THREE.BoxGeometry(windowSize, windowSize, windowDepth);
+      
+      // Add windows to each face
+      for (let wx = 0; wx < windowsX; wx++) {
+        for (let wy = 0; wy < windowsY; wy++) {
+          // Front face
+          const frontWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
+          frontWindow.position.set(
+            (wx - windowsX/2 + 0.5) * windowSpacing,
+            (wy - windowsY/2 + 0.5) * windowSpacing,
+            depth/2 + windowDepth/2
+          );
+          buildingGroup.add(frontWindow);
+          
+          // Back face
+          const backWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
+          backWindow.position.set(
+            (wx - windowsX/2 + 0.5) * windowSpacing,
+            (wy - windowsY/2 + 0.5) * windowSpacing,
+            -depth/2 - windowDepth/2
+          );
+          buildingGroup.add(backWindow);
+        }
+      }
+      
+      // Side windows
+      for (let wz = 0; wz < windowsZ; wz++) {
+        for (let wy = 0; wy < windowsY; wy++) {
+          // Left face
+          const leftWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
+          leftWindow.position.set(
+            -width/2 - windowDepth/2,
+            (wy - windowsY/2 + 0.5) * windowSpacing,
+            (wz - windowsZ/2 + 0.5) * windowSpacing
+          );
+          leftWindow.rotation.y = Math.PI/2;
+          buildingGroup.add(leftWindow);
+          
+          // Right face
+          const rightWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
+          rightWindow.position.set(
+            width/2 + windowDepth/2,
+            (wy - windowsY/2 + 0.5) * windowSpacing,
+            (wz - windowsZ/2 + 0.5) * windowSpacing
+          );
+          rightWindow.rotation.y = Math.PI/2;
+          buildingGroup.add(rightWindow);
+        }
+      }
+    }
+    
+    buildingGroup.position.set(x, -20, z);
+    buildings.push(buildingGroup);
+  }
+
+  return buildings;
+};
+
 const RoomScene = ({ setCurrentSection, setContentVisible }) => {
   const spotLight = useRef();
   const dirLight = useRef();
   const moonLight = useRef();
   const fillLight = useRef();
+  const keyLightRef = useRef();
+  const lodRef = useRef();
+  const floorRef = useRef();
+  const backWallRef = useRef();
+  const leftWallRef = useRef();
+  const rightWallRef = useRef();
+  const windowFrameRef = useRef();
+  const windowGlassRef = useRef();
+  const [lodInitialized, setLodInitialized] = useState(false);
+  const { camera } = useThree();
 
   // Debug helpers (comment out in production)
   useHelper(spotLight, SpotLightHelper, 'white');
   useHelper(dirLight, DirectionalLightHelper, 1, 'red');
   useHelper(fillLight, DirectionalLightHelper, 1, 'blue');
 
+  // Optimize shadow settings
+  const { gl } = useThree();
+  gl.shadowMap.enabled = true;
+  gl.shadowMap.type = THREE.PCFSoftShadowMap;
+  gl.setPixelRatio(window.devicePixelRatio);
+
+  // Memory management
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      gl.dispose();
+      if (moonLight.current) {
+        moonLight.current.geometry.dispose();
+        moonLight.current.material.dispose();
+      }
+    };
+  }, [gl]);
+
   const handleObjectClick = (section) => {
     setCurrentSection(section);
     setContentVisible(true);
   };
 
-  const createCityBuildings = (offsetX, offsetZ, count = 5) => {
-    const buildingColors = [
-      new Color(0.04, 0.07, 0.10),  // Darkest
-      new Color(0.08, 0.12, 0.16),  // Dark
-      new Color(0.11, 0.16, 0.20),  // Medium
-      new Color(0.13, 0.19, 0.24),  // Light
-      new Color(0.16, 0.22, 0.28)   // Lightest
+  // Add hover state for buildings
+  const [hoveredBuilding, setHoveredBuilding] = useState(null);
+
+  // LOD setup with proper cleanup
+  useEffect(() => {
+    if (!lodRef.current) {
+      lodRef.current = new THREE.LOD();
+    }
+
+    const lod = lodRef.current;
+    
+    // Clear existing levels
+    while(lod.children.length > 0) {
+      const child = lod.children[0];
+      child.traverse(object => {
+        if (object instanceof THREE.Mesh) {
+          object.geometry.dispose();
+          object.material.dispose();
+        }
+      });
+      lod.remove(child);
+    }
+
+    // Create high detail group
+    const highDetailGroup = new THREE.Group();
+    createCityBuildings(0, -50, 8, 'high').forEach(building => highDetailGroup.add(building));
+    createCityBuildings(-30, -50, 6, 'high').forEach(building => highDetailGroup.add(building));
+    createCityBuildings(30, -50, 6, 'high').forEach(building => highDetailGroup.add(building));
+    lod.addLevel(highDetailGroup, 0);
+
+    // Create medium detail group
+    const mediumDetailGroup = new THREE.Group();
+    createCityBuildings(0, -70, 7, 'medium').forEach(building => mediumDetailGroup.add(building));
+    createCityBuildings(-50, 10, 5, 'medium').forEach(building => mediumDetailGroup.add(building));
+    createCityBuildings(60, 10, 5, 'medium').forEach(building => mediumDetailGroup.add(building));
+    lod.addLevel(mediumDetailGroup, 50);
+
+    // Create low detail group
+    const lowDetailGroup = new THREE.Group();
+    createCityBuildings(-45, -30, 4, 'low').forEach(building => lowDetailGroup.add(building));
+    createCityBuildings(-50, -60, 6, 'low').forEach(building => lowDetailGroup.add(building));
+    createCityBuildings(45, -30, 4, 'low').forEach(building => lowDetailGroup.add(building));
+    createCityBuildings(50, -60, 6, 'low').forEach(building => lowDetailGroup.add(building));
+    lod.addLevel(lowDetailGroup, 100);
+
+    setLodInitialized(true);
+
+    return () => {
+      lod.traverse(child => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          child.material.dispose();
+        }
+      });
+    };
+  }, []);
+
+  // Update LOD and handle hover effects
+  useFrame(() => {
+    if (lodRef.current && camera) {
+      lodRef.current.update(camera);
+      
+      // Update hover effects
+      if (hoveredBuilding) {
+        hoveredBuilding.traverse(child => {
+          if (child instanceof THREE.Mesh && child.material.emissive) {
+            child.material.emissiveIntensity = 1.0;
+          }
+        });
+      }
+    }
+  });
+
+  // Create interactive objects data
+  const createInteractiveObjects = () => {
+    const objects = [
+      {
+        position: [-1.5, 0.3, 0],
+        rotation: [0, Math.PI / 4, 0],
+        scale: [0.2, 0.2, 0.2],
+        color: new Color(0.1, 0.2, 0.3),
+        type: 'cube'
+      },
+      {
+        position: [0, 0.3, 0],
+        rotation: [0, Math.PI / 3, 0],
+        scale: [0.2, 0.2, 0.2],
+        color: new Color(0.2, 0.3, 0.4),
+        type: 'sphere'
+      },
+      {
+        position: [1.5, 0.3, 0],
+        rotation: [0, Math.PI / 6, 0],
+        scale: [0.2, 0.2, 0.2],
+        color: new Color(0.3, 0.4, 0.5),
+        type: 'torus'
+      }
     ];
 
-    const buildings = [];
-    for (let i = 0; i < count; i++) {
-      const height = Math.random() * 60 + 30;
-      const width = Math.random() * 6 + 6;
-      const depth = Math.random() * 6 + 6;
-      const x = (Math.random() - 0.5) * 40 + offsetX;
-      const z = (Math.random() - 0.5) * 40 + offsetZ;
-      
-      const colorIndex = Math.floor(Math.random() * buildingColors.length);
-      
-      buildings.push(
-        <ToonObject
-          key={`building-${offsetX}-${offsetZ}-${i}`}
-          geometry={<boxGeometry args={[width, height, depth]} />}
-          position={[x, -20, z]}
-          color={buildingColors[colorIndex]}
-          outlineWidth={0.03}
-          rimIntensity={0.3}
-          specularIntensity={0.2}
-          halftoneIntensity={0.2}
-        />
-      );
-    }
-    return buildings;
+    return objects;
   };
+
+  const interactiveObjects = createInteractiveObjects();
 
   return (
     <>
@@ -346,7 +572,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
       <directionalLight
         ref={moonLight}
         position={[-80, 60, -120]}
-        intensity={0.3}
+        intensity={0.5}
         color="#E6E6FA"
         castShadow
       />
@@ -358,9 +584,15 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         position={[0, 15, -5]}
         angle={Math.PI / 4}
         penumbra={0.2}
-        intensity={0.8}
+        intensity={1.2}
         color="#FFE5B4"
-        castShadow={false}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
       />
 
       {/* Fill Light - Soft fill from opposite side */}
@@ -369,7 +601,8 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         position={[-10, 10, 5]}
         intensity={0.3}
         color="#B4E5FF"
-        castShadow={false}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
       />
 
       {/* Rim Light - Creates edge highlights */}
@@ -378,11 +611,35 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         position={[10, 10, 5]}
         intensity={0.4}
         color="#FFFFFF"
-        castShadow={false}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
       />
 
-      {/* Ambient Light - Reduced for more dramatic shadows */}
+      {/* Ambient Light - Increased for better visibility */}
       <ambientLight intensity={0.4} color="#404040" />
+
+      {/* Accent Light - Highlights specific areas */}
+      <spotLight
+        position={[5, 8, -8]}
+        angle={Math.PI / 6}
+        penumbra={0.3}
+        intensity={0.6}
+        color="#FFB4E5"
+        castShadow
+      />
+
+      {/* Window Light - Creates natural light effect */}
+      <spotLight
+        position={[0, 10, -9.5]}
+        angle={Math.PI / 3}
+        penumbra={0.4}
+        intensity={0.8}
+        color="#E6E6FA"
+        castShadow
+      />
+
+      {/* City Buildings with LOD */}
+      <CityLOD />
 
       {/* Building Structure */}
       {/* Building Exterior - Front */}
@@ -413,14 +670,222 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
       />
 
       {/* Floor */}
-      <ToonObject
-        geometry={<boxGeometry args={[20, 20, 0.2]} />}
-        position={[0, -0.1, 0]}
+      <mesh
+        ref={floorRef}
         rotation={[-Math.PI / 2, 0, 0]}
-        color={new Color(0.24, 0.15, 0.14)}
-        outlineWidth={0.01}
-        materialType="wood"
-      />
+        position={[0, -0.01, 0]}
+        receiveShadow
+      >
+        <planeGeometry args={[20, 20]} />
+        <toonEnhancedMaterial
+          color="#2C3E50"
+          materialType="floorEnhanced"
+          receiveShadow
+        />
+      </mesh>
+
+      {/* Main Room Structure */}
+      <group>
+        {/* Back Wall with Window */}
+        <group position={[0, 10, -10]}>
+          {/* Top Wall Section */}
+          <mesh
+            ref={backWallRef}
+            position={[0, 6, 0]}
+            receiveShadow
+          >
+            <boxGeometry args={[20, 8, 0.3]} />
+            <toonEnhancedMaterial
+              color="#34495E"
+              materialType="wallEnhanced"
+              receiveShadow
+            />
+          </mesh>
+
+          {/* Bottom Wall Section */}
+          <mesh
+            position={[0, -6, 0]}
+            receiveShadow
+          >
+            <boxGeometry args={[20, 8, 0.3]} />
+            <toonEnhancedMaterial
+              color="#34495E"
+              materialType="wallEnhanced"
+              receiveShadow
+            />
+          </mesh>
+
+          {/* Left Wall Section */}
+          <mesh
+            position={[-6, 0, 0]}
+            receiveShadow
+          >
+            <boxGeometry args={[8, 12, 0.3]} />
+            <toonEnhancedMaterial
+              color="#34495E"
+              materialType="wallEnhanced"
+              receiveShadow
+            />
+          </mesh>
+
+          {/* Right Wall Section */}
+          <mesh
+            position={[6, 0, 0]}
+            receiveShadow
+          >
+            <boxGeometry args={[8, 12, 0.3]} />
+            <toonEnhancedMaterial
+              color="#34495E"
+              materialType="wallEnhanced"
+              receiveShadow
+            />
+          </mesh>
+        </group>
+
+        {/* Left Wall */}
+        <mesh
+          ref={leftWallRef}
+          position={[-10, 10, 0]}
+          rotation={[0, Math.PI / 2, 0]}
+          receiveShadow
+        >
+          <boxGeometry args={[20, 20, 0.3]} />
+          <toonEnhancedMaterial
+            color="#34495E"
+            materialType="wallEnhanced"
+            receiveShadow
+          />
+        </mesh>
+
+        {/* Right Wall */}
+        <mesh
+          ref={rightWallRef}
+          position={[10, 10, 0]}
+          rotation={[0, -Math.PI / 2, 0]}
+          receiveShadow
+        >
+          <boxGeometry args={[20, 20, 0.3]} />
+          <toonEnhancedMaterial
+            color="#34495E"
+            materialType="wallEnhanced"
+            receiveShadow
+          />
+        </mesh>
+
+        {/* Main Window Structure */}
+        <group position={[0, 10, -9.7]}>
+          {/* Window Frame - Outer */}
+          <mesh
+            ref={windowFrameRef}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[8, 12, 0.3]} />
+            <toonEnhancedMaterial
+              color="#2C3E50"
+              materialType="woodEnhanced"
+              castShadow
+              receiveShadow
+            />
+          </mesh>
+
+          {/* Window Frame - Inner */}
+          <mesh
+            position={[0, 0, 0.15]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[7.6, 11.6, 0.1]} />
+            <toonEnhancedMaterial
+              color="#2C3E50"
+              materialType="woodEnhanced"
+              castShadow
+              receiveShadow
+            />
+          </mesh>
+
+          {/* Window Glass */}
+          <mesh
+            position={[0, 0, 0.2]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[7.4, 11.4, 0.05]} />
+            <meshPhysicalMaterial
+              color="#FFFFFF"
+              transparent={true}
+              opacity={0.2}
+              transmission={0.95}
+              roughness={0.1}
+              metalness={0.1}
+              clearcoat={1}
+              clearcoatRoughness={0.1}
+              envMapIntensity={1.5}
+              reflectivity={1}
+              ior={1.5}
+              side={THREE.DoubleSide}
+              toneMapped={true}
+              emissive="#FFFFFF"
+              emissiveIntensity={0.2}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Window Grid */}
+          <group position={[0, 0, 0.2]}>
+            {/* Vertical Dividers */}
+            {[-2.6, 0, 2.6].map((x, i) => (
+              <ToonObject
+                key={`vertical-${i}`}
+                geometry={<boxGeometry args={[0.1, 11.4, 0.05]} />}
+                position={[x, 0, 0]}
+                color={new Color(0.2, 0.2, 0.2)}
+                outlineWidth={0.01}
+                materialType="metal"
+              />
+            ))}
+            {/* Horizontal Dividers */}
+            {[-4, 0, 4].map((y, i) => (
+              <ToonObject
+                key={`horizontal-${i}`}
+                geometry={<boxGeometry args={[7.4, 0.1, 0.05]} />}
+                position={[0, y, 0]}
+                color={new Color(0.2, 0.2, 0.2)}
+                outlineWidth={0.01}
+                materialType="metal"
+              />
+            ))}
+          </group>
+        </group>
+
+        {/* Additional Window in Right Wall */}
+        <group position={[9.85, 10, 0]}>
+          {/* Window Frame */}
+          <ToonObject
+            geometry={<boxGeometry args={[0.3, 8, 4]} />}
+            position={[0, 0, 0]}
+            color={new Color(0.545, 0.271, 0.075)}
+            outlineWidth={0.02}
+            materialType="wood"
+          />
+          {/* Glass */}
+          <ToonObject
+            geometry={<boxGeometry args={[0.1, 7.5, 3.5]} />}
+            position={[0.15, 0, 0]}
+            color={new Color(0.65, 0.85, 1)}
+            outlineWidth={0.01}
+            materialType="glass"
+          />
+          {/* Window Divider */}
+          <ToonObject
+            geometry={<boxGeometry args={[0.1, 7.5, 0.1]} />}
+            position={[0.15, 0, 0]}
+            color={new Color(0.2, 0.2, 0.2)}
+            outlineWidth={0.01}
+            materialType="metal"
+          />
+        </group>
+      </group>
 
       {/* Roof */}
       <ToonObject
@@ -432,110 +897,26 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         materialType="wood"
       />
 
-      {/* Back Wall with Window */}
-      <group position={[0, 10, -10]}>
-        {/* Wall Sections */}
-        <ToonObject
-          geometry={<boxGeometry args={[20, 12, 0.6]} />}
-          position={[0, 10.4, 0]}
-          color={new Color(0.83, 0.33, 0)}
-          outlineWidth={0.02}
-          materialType="plastic"
+      {/* Interactive Objects with Instances */}
+      <Instances limit={3}>
+        <boxGeometry args={[1, 1, 1]} />
+        <toonEnhancedMaterial
+          outlineColor={new Color(0.0, 0.0, 0.0)}
+          outlineWidth={0.03}
+          rimIntensity={0.3}
+          specularIntensity={0.2}
+          halftoneIntensity={0.2}
         />
-        <ToonObject
-          geometry={<boxGeometry args={[20, 12, 0.6]} />}
-          position={[0, -10.4, 0]}
-          color={new Color(0.83, 0.33, 0)}
-          outlineWidth={0.02}
-          materialType="plastic"
-        />
-        <ToonObject
-          geometry={<boxGeometry args={[5, 16, 0.6]} />}
-          position={[-7.5, 0, 0]}
-          color={new Color(0.83, 0.33, 0)}
-          outlineWidth={0.02}
-          materialType="plastic"
-        />
-        <ToonObject
-          geometry={<boxGeometry args={[5, 15, 0.6]} />}
-          position={[7.5, 0, 0]}
-          color={new Color(0.83, 0.33, 0)}
-          outlineWidth={0.02}
-          materialType="plastic"
-        />
-
-        {/* Window Frame */}
-        <group position={[0, 0, 0.3]}>
-          {[
-            { pos: [0, 4.1, 0], size: [10.2, 0.4, 0.4] },
-            { pos: [0, -4.1, 0], size: [10.2, 0.4, 0.4] },
-            { pos: [-5.1, 0, 0], size: [0.4, 8.2, 0.4] },
-            { pos: [5.1, 0, 0], size: [0.4, 8.2, 0.4] },
-            { pos: [0, 0, 0], size: [0.3, 8.2, 0.3] },
-            { pos: [0, 0, 0], size: [10.2, 0.3, 0.3] }
-          ].map((frame, idx) => (
-            <ToonObject
-              key={`window-frame-${idx}`}
-              geometry={<boxGeometry args={frame.size} />}
-              position={frame.pos}
-              color={new Color(0.545, 0.271, 0.075)}
-              outlineWidth={0.01}
-              materialType="wood"
-            />
-          ))}
-        </group>
-      </group>
-
-      {/* Side Wall (thicker) */}
-      <ToonObject
-        geometry={<boxGeometry args={[20, 20, 0.6]} />}
-        position={[-9.9, 10, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        color={new Color(0.83, 0.33, 0)}
-        outlineWidth={0.02}
-        materialType="plastic"
-      />
-
-      {/* Right Wall */}
-      <ToonObject
-        geometry={<boxGeometry args={[0.5, 20, 20]} />}
-        position={[9.6, 10, 0]}
-        color={new Color(0.83, 0.33, 0)}
-        outlineWidth={0.02}
-        materialType="plastic"
-      />
-
-      {/* Additional Window in Right Wall */}
-      <group position={[9.5, 10, 0]}>
-        {/* Window Frame */}
-        <ToonObject
-          geometry={<boxGeometry args={[0.5, 6, 4]} />}
-          position={[0, 0, 0]}
-          color={new Color(0.545, 0.271, 0.075)}
-          outlineWidth={0.02}
-          materialType="wood"
-        />
-        {/* Glass */}
-        <ToonObject
-          geometry={<boxGeometry args={[0.1, 5.5, 3.5]} />}
-          position={[0.1, 0, 0]}
-          color={new Color(0.65, 0.85, 1)}
-          outlineWidth={0.01}
-          materialType="glass"
-        />
-      </group>
-
-      {/* City Buildings */}
-      {createCityBuildings(0, -50, 8)}  // Central cluster
-      {createCityBuildings(-30, -50, 6)}  // Left cluster
-      {createCityBuildings(30, -50, 6)}  // Right cluster
-      {createCityBuildings(0, -70, 7)}  // Far cluster
-      {createCityBuildings(-50, 10, 5)}  // Far left
-      {createCityBuildings(-45, -30, 4)}  // Near left
-      {createCityBuildings(-50, -60, 6)}  // Deep left
-      {createCityBuildings(60, 10, 5)}   // Far right
-      {createCityBuildings(45, -30, 4)}   // Near right
-      {createCityBuildings(50, -60, 6)}   // Deep right
+        {interactiveObjects.map((obj, i) => (
+          <Instance
+            key={`interactive-${i}`}
+            position={obj.position}
+            rotation={obj.rotation}
+            scale={obj.scale}
+            color={obj.color}
+          />
+        ))}
+      </Instances>
 
       {/* Desk Group */}
       <group position={[0, 0, 0]}>
@@ -1029,6 +1410,20 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
         outlineWidth={0.01}
         materialType="fabric"
       />
+
+      {/* Optimized Shadows */}
+      <directionalLight
+        ref={keyLightRef}
+        position={[5, 5, 5]}
+        intensity={1.5}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
+      />
     </>
   );
 };
@@ -1036,7 +1431,18 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
 export const Room = ({ setCurrentSection, setContentVisible }) => {
   return (
     <div style={{ width: '100%', height: '100vh', backgroundColor: '#000000' }}>
-      <Canvas shadows camera={{ position: [12, 12, 12], fov: 65 }}>
+      <Canvas
+        shadows
+        camera={{ position: [12, 12, 12], fov: 65 }}
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: 'high-performance',
+          stencil: false,
+          depth: true
+        }}
+        dpr={[1, 2]}
+      >
         <Suspense fallback={null}>
           <color attach="background" args={['#050505']} />
           <RoomScene setCurrentSection={setCurrentSection} setContentVisible={setContentVisible} />
@@ -1053,7 +1459,26 @@ export const Room = ({ setCurrentSection, setContentVisible }) => {
             minDistance={10}
             zoomSpeed={0.5}
           />
-          <Environment preset="night" />
+          <Environment 
+            preset="night"
+            background={false}
+          />
+          <EffectComposer 
+            multisampling={0}
+            enabled={true}
+            autoClear={true}
+            depthBuffer={true}
+          >
+            <Bloom 
+              intensity={1.5}
+              luminanceThreshold={0.2}
+              luminanceSmoothing={0.9}
+              mipmapBlur
+              blendFunction={BlendFunction.SCREEN}
+              kernelSize={3}
+              resolutionScale={0.5}
+            />
+          </EffectComposer>
         </Suspense>
       </Canvas>
     </div>
