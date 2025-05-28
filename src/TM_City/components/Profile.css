@@ -1,0 +1,193 @@
+.profile-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 1004;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 8px;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    max-width: 300px;
+    width: 100%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.profile-preview {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    cursor: pointer;
+    gap: 1rem;
+}
+
+.profile-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #4CAF50;
+}
+
+.profile-info {
+    flex: 1;
+}
+
+.profile-info h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #ffffff;
+}
+
+.profile-info p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.level-badge {
+    display: inline-block;
+    background: #4CAF50;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.profile-container.expanded {
+    max-width: 400px;
+}
+
+.profile-details {
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.profile-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #ffffff;
+}
+
+.edit-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.edit-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.xp-progress {
+    margin-bottom: 2rem;
+}
+
+.xp-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2196F3, #4CAF50);
+    transition: width 0.3s ease;
+}
+
+.xp-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.skills-section {
+    margin-top: 1.5rem;
+}
+
+.skills-section h3 {
+    margin: 0 0 1rem 0;
+    color: #ffffff;
+}
+
+.skill-item {
+    margin-bottom: 1rem;
+}
+
+.skill-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.skill-name {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.skill-level {
+    color: #4CAF50;
+    font-size: 0.9rem;
+}
+
+.skill-progress {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.skill-fill {
+    height: 100%;
+    background: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.skill-xp {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.profile-edit {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-group {
+    margin-bottom: 1rem;
+}
+
+.edit-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.edit-group input {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: white;
+    font-size: 1rem;
+}
+
+.edit-group input:focus {
+    outline: none;
+    border-color: #4CAF50;
+} 

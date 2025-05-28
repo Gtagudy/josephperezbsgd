@@ -1,10 +1,32 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export const CityLOD = () => {
   const lodRef = useRef(new THREE.LOD());
   const { camera } = useThree();
+
+  // Create shared geometries and materials
+  const { buildingGeometry, windowGeometry, materials } = useMemo(() => ({
+    buildingGeometry: new THREE.BoxGeometry(1, 1, 1),
+    windowGeometry: new THREE.BoxGeometry(0.8, 0.8, 0.1),
+    materials: {
+      base: new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0.1, 0.1, 0.15),
+        metalness: 0.2,
+        roughness: 0.7,
+        emissive: new THREE.Color(0.05, 0.05, 0.1),
+        emissiveIntensity: 0.5
+      }),
+      windows: new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0.9, 0.9, 0.7),
+        emissive: new THREE.Color(0.9, 0.9, 0.7),
+        emissiveIntensity: 0.8,
+        transparent: true,
+        opacity: 0.9
+      })
+    }
+  }), []);
 
   useEffect(() => {
     const lod = lodRef.current;
@@ -21,26 +43,22 @@ export const CityLOD = () => {
       lod.remove(child);
     }
 
-    // Create high detail group
+    // Create high detail group with instancing
     const highDetailGroup = new THREE.Group();
-    createCityBuildings(0, -50, 8, 'high').forEach(building => highDetailGroup.add(building));
-    createCityBuildings(-30, -50, 6, 'high').forEach(building => highDetailGroup.add(building));
-    createCityBuildings(30, -50, 6, 'high').forEach(building => highDetailGroup.add(building));
+    const highDetailBuildings = createInstancedBuildings(0, -50, 8, 'high', buildingGeometry, windowGeometry, materials);
+    highDetailGroup.add(highDetailBuildings);
     lod.addLevel(highDetailGroup, 0);
 
-    // Create medium detail group
+    // Create medium detail group with instancing
     const mediumDetailGroup = new THREE.Group();
-    createCityBuildings(0, -70, 7, 'medium').forEach(building => mediumDetailGroup.add(building));
-    createCityBuildings(-50, 10, 5, 'medium').forEach(building => mediumDetailGroup.add(building));
-    createCityBuildings(60, 10, 5, 'medium').forEach(building => mediumDetailGroup.add(building));
+    const mediumDetailBuildings = createInstancedBuildings(0, -70, 7, 'medium', buildingGeometry, windowGeometry, materials);
+    mediumDetailGroup.add(mediumDetailBuildings);
     lod.addLevel(mediumDetailGroup, 50);
 
-    // Create low detail group
+    // Create low detail group with instancing
     const lowDetailGroup = new THREE.Group();
-    createCityBuildings(-45, -30, 4, 'low').forEach(building => lowDetailGroup.add(building));
-    createCityBuildings(-50, -60, 6, 'low').forEach(building => lowDetailGroup.add(building));
-    createCityBuildings(45, -30, 4, 'low').forEach(building => lowDetailGroup.add(building));
-    createCityBuildings(50, -60, 6, 'low').forEach(building => lowDetailGroup.add(building));
+    const lowDetailBuildings = createInstancedBuildings(-45, -30, 4, 'low', buildingGeometry, windowGeometry, materials);
+    lowDetailGroup.add(lowDetailBuildings);
     lod.addLevel(lowDetailGroup, 100);
 
     return () => {
@@ -51,7 +69,7 @@ export const CityLOD = () => {
         }
       });
     };
-  }, []);
+  }, [buildingGeometry, windowGeometry, materials]);
 
   useFrame(() => {
     if (lodRef.current && camera) {
@@ -62,33 +80,28 @@ export const CityLOD = () => {
   return <primitive object={lodRef.current} />;
 };
 
-const createBuildingMaterials = (detailLevel) => {
-  const baseMaterial = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0.1, 0.1, 0.15),
-    metalness: 0.2,
-    roughness: 0.7,
-    emissive: new THREE.Color(0.05, 0.05, 0.1),
-    emissiveIntensity: 0.5
-  });
-
+const createInstancedBuildings = (offsetX, offsetZ, count, detailLevel, buildingGeometry, windowGeometry, materials) => {
+  const group = new THREE.Group();
+  const dummy = new THREE.Object3D();
+  
+  // Create instanced mesh for buildings
+  const buildingMesh = new THREE.InstancedMesh(
+    buildingGeometry,
+    materials.base,
+    count
+  );
+  
+  // Create instanced mesh for windows if high detail
+  let windowMesh;
   if (detailLevel === 'high') {
-    const windowMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0.9, 0.9, 0.7),
-      emissive: new THREE.Color(0.9, 0.9, 0.7),
-      emissiveIntensity: 0.8,
-      transparent: true,
-      opacity: 0.9
-    });
-    return { base: baseMaterial, windows: windowMaterial };
+    windowMesh = new THREE.InstancedMesh(
+      windowGeometry,
+      materials.windows,
+      count * 4 // Assuming 4 sides with windows
+    );
   }
 
-  return { base: baseMaterial };
-};
-
-const createCityBuildings = (offsetX, offsetZ, count = 5, detailLevel = 'high') => {
-  const buildings = [];
-  const materials = createBuildingMaterials(detailLevel);
-  
+  // Generate building positions and scales
   for (let i = 0; i < count; i++) {
     const height = Math.random() * 60 + 30;
     const width = Math.random() * 6 + 6;
@@ -96,79 +109,35 @@ const createCityBuildings = (offsetX, offsetZ, count = 5, detailLevel = 'high') 
     const x = (Math.random() - 0.5) * 40 + offsetX;
     const z = (Math.random() - 0.5) * 40 + offsetZ;
     
-    const buildingGroup = new THREE.Group();
+    // Set building transform
+    dummy.position.set(x, -20, z);
+    dummy.scale.set(width, height, depth);
+    dummy.updateMatrix();
+    buildingMesh.setMatrixAt(i, dummy.matrix);
     
-    const building = new THREE.Mesh(
-      new THREE.BoxGeometry(width, height, depth, 
-        detailLevel === 'high' ? 2 : 1,
-        detailLevel === 'high' ? 2 : 1,
-        detailLevel === 'high' ? 2 : 1
-      ),
-      materials.base.clone()
-    );
-    
-    building.position.set(0, 0, 0);
-    building.castShadow = true;
-    building.receiveShadow = true;
-    buildingGroup.add(building);
-
-    if (detailLevel === 'high' && materials.windows) {
-      const windowSize = 0.8;
+    // Set window transforms if high detail
+    if (detailLevel === 'high' && windowMesh) {
       const windowSpacing = 1.2;
-      const windowDepth = 0.1;
-      
       const windowsX = Math.floor(width / windowSpacing);
       const windowsY = Math.floor(height / windowSpacing);
-      const windowsZ = Math.floor(depth / windowSpacing);
       
-      const windowGeometry = new THREE.BoxGeometry(windowSize, windowSize, windowDepth);
-      
+      // Front windows
       for (let wx = 0; wx < windowsX; wx++) {
         for (let wy = 0; wy < windowsY; wy++) {
-          const frontWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
-          frontWindow.position.set(
-            (wx - windowsX/2 + 0.5) * windowSpacing,
-            (wy - windowsY/2 + 0.5) * windowSpacing,
-            depth/2 + windowDepth/2
+          dummy.position.set(
+            x + (wx - windowsX/2 + 0.5) * windowSpacing,
+            -20 + (wy - windowsY/2 + 0.5) * windowSpacing,
+            z + depth/2 + 0.05
           );
-          buildingGroup.add(frontWindow);
-          
-          const backWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
-          backWindow.position.set(
-            (wx - windowsX/2 + 0.5) * windowSpacing,
-            (wy - windowsY/2 + 0.5) * windowSpacing,
-            -depth/2 - windowDepth/2
-          );
-          buildingGroup.add(backWindow);
-        }
-      }
-      
-      for (let wz = 0; wz < windowsZ; wz++) {
-        for (let wy = 0; wy < windowsY; wy++) {
-          const leftWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
-          leftWindow.position.set(
-            -width/2 - windowDepth/2,
-            (wy - windowsY/2 + 0.5) * windowSpacing,
-            (wz - windowsZ/2 + 0.5) * windowSpacing
-          );
-          leftWindow.rotation.y = Math.PI/2;
-          buildingGroup.add(leftWindow);
-          
-          const rightWindow = new THREE.Mesh(windowGeometry, materials.windows.clone());
-          rightWindow.position.set(
-            width/2 + windowDepth/2,
-            (wy - windowsY/2 + 0.5) * windowSpacing,
-            (wz - windowsZ/2 + 0.5) * windowSpacing
-          );
-          rightWindow.rotation.y = Math.PI/2;
-          buildingGroup.add(rightWindow);
+          dummy.updateMatrix();
+          windowMesh.setMatrixAt(i * 4 + wx * windowsY + wy, dummy.matrix);
         }
       }
     }
-    
-    buildingGroup.position.set(x, -20, z);
-    buildings.push(buildingGroup);
   }
-
-  return buildings;
+  
+  group.add(buildingMesh);
+  if (windowMesh) group.add(windowMesh);
+  
+  return group;
 }; 

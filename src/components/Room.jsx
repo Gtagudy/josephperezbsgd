@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useRef, useEffect } from 'react';
+import React, { Suspense, useState, useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
 import { 
   OrbitControls, 
@@ -429,7 +429,6 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
   const leftWallRef = useRef();
   const rightWallRef = useRef();
   const windowFrameRef = useRef();
-  const windowGlassRef = useRef();
   const [lodInitialized, setLodInitialized] = useState(false);
   const { camera } = useThree();
 
@@ -686,12 +685,12 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
 
       {/* Main Room Structure */}
       <group>
-        {/* Back Wall with Window */}
+        {/* Back Wall with Window - Controls the entire window wall structure */}
         <group position={[0, 10, -10]}>
-          {/* Top Wall Section */}
+          {/* Top Wall Section - The wall above the window */}
           <mesh
             ref={backWallRef}
-            position={[0, 6, 0]}
+            position={[0, 10, 0]}
             receiveShadow
           >
             <boxGeometry args={[20, 8, 0.3]} />
@@ -702,7 +701,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
             />
           </mesh>
 
-          {/* Bottom Wall Section */}
+          {/* Bottom Wall Section - The wall below the window */}
           <mesh
             position={[0, -6, 0]}
             receiveShadow
@@ -715,7 +714,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
             />
           </mesh>
 
-          {/* Left Wall Section */}
+          {/* Left Wall Section - The wall to the left of the window */}
           <mesh
             position={[-6, 0, 0]}
             receiveShadow
@@ -728,7 +727,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
             />
           </mesh>
 
-          {/* Right Wall Section */}
+          {/* Right Wall Section - The wall to the right of the window */}
           <mesh
             position={[6, 0, 0]}
             receiveShadow
@@ -772,68 +771,34 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
           />
         </mesh>
 
-        {/* Main Window Structure */}
+        {/* Main Window Structure - Contains all window components */}
         <group position={[0, 10, -9.7]}>
-          {/* Window Frame - Outer */}
+          {/* Window Glass - Converted from frame to glass */}
           <mesh
             ref={windowFrameRef}
             castShadow
             receiveShadow
           >
-            <boxGeometry args={[8, 12, 0.3]} />
-            <toonEnhancedMaterial
-              color="#2C3E50"
-              materialType="woodEnhanced"
-              castShadow
-              receiveShadow
-            />
-          </mesh>
-
-          {/* Window Frame - Inner */}
-          <mesh
-            position={[0, 0, 0.15]}
-            castShadow
-            receiveShadow
-          >
-            <boxGeometry args={[7.6, 11.6, 0.1]} />
-            <toonEnhancedMaterial
-              color="#2C3E50"
-              materialType="woodEnhanced"
-              castShadow
-              receiveShadow
-            />
-          </mesh>
-
-          {/* Window Glass */}
-          <mesh
-            position={[0, 0, 0.2]}
-            castShadow
-            receiveShadow
-          >
-            <boxGeometry args={[7.4, 11.4, 0.05]} />
+            <boxGeometry args={[8, 15, 0.1]} />
             <meshPhysicalMaterial
-              color="#FFFFFF"
-              transparent={true}
-              opacity={0.2}
+              color={new THREE.Color(0.9, 0.95, 1.0)}
+              metalness={0.0}
+              roughness={0.0}
               transmission={0.95}
-              roughness={0.1}
-              metalness={0.1}
-              clearcoat={1}
+              thickness={0.5}
+              envMapIntensity={1.0}
+              clearcoat={1.0}
               clearcoatRoughness={0.1}
-              envMapIntensity={1.5}
-              reflectivity={1}
               ior={1.5}
+              transparent={true}
+              opacity={0.3}
               side={THREE.DoubleSide}
-              toneMapped={true}
-              emissive="#FFFFFF"
-              emissiveIntensity={0.2}
-              depthWrite={false}
             />
           </mesh>
 
-          {/* Window Grid */}
-          <group position={[0, 0, 0.2]}>
-            {/* Vertical Dividers */}
+          {/* Window Grid - The decorative grid pattern on the window */}
+          <group position={[0, 0, 0.05]}>
+            {/* Vertical Dividers - The vertical lines in the grid */}
             {[-2.6, 0, 2.6].map((x, i) => (
               <ToonObject
                 key={`vertical-${i}`}
@@ -844,7 +809,7 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
                 materialType="metal"
               />
             ))}
-            {/* Horizontal Dividers */}
+            {/* Horizontal Dividers - The horizontal lines in the grid */}
             {[-4, 0, 4].map((y, i) => (
               <ToonObject
                 key={`horizontal-${i}`}
@@ -858,32 +823,35 @@ const RoomScene = ({ setCurrentSection, setContentVisible }) => {
           </group>
         </group>
 
-        {/* Additional Window in Right Wall */}
-        <group position={[9.85, 10, 0]}>
-          {/* Window Frame */}
-          <ToonObject
-            geometry={<boxGeometry args={[0.3, 8, 4]} />}
+        {/* Side Walls */}
+        <group position={[-10, 10, 0]}>
+          <mesh
             position={[0, 0, 0]}
-            color={new Color(0.545, 0.271, 0.075)}
-            outlineWidth={0.02}
-            materialType="wood"
-          />
-          {/* Glass */}
-          <ToonObject
-            geometry={<boxGeometry args={[0.1, 7.5, 3.5]} />}
-            position={[0.15, 0, 0]}
-            color={new Color(0.65, 0.85, 1)}
-            outlineWidth={0.01}
-            materialType="glass"
-          />
-          {/* Window Divider */}
-          <ToonObject
-            geometry={<boxGeometry args={[0.1, 7.5, 0.1]} />}
-            position={[0.15, 0, 0]}
-            color={new Color(0.2, 0.2, 0.2)}
-            outlineWidth={0.01}
-            materialType="metal"
-          />
+            rotation={[0, Math.PI / 2, 0]}
+            receiveShadow
+          >
+            <boxGeometry args={[20, 20, 0.3]} />
+            <toonEnhancedMaterial
+              color="#34495E"
+              materialType="wallEnhanced"
+              receiveShadow
+            />
+          </mesh>
+        </group>
+
+        <group position={[10, 10, 0]}>
+          <mesh
+            position={[0, 0, 0]}
+            rotation={[0, -Math.PI / 2, 0]}
+            receiveShadow
+          >
+            <boxGeometry args={[20, 20, 0.3]} />
+            <toonEnhancedMaterial
+              color="#34495E"
+              materialType="wallEnhanced"
+              receiveShadow
+            />
+          </mesh>
         </group>
       </group>
 
