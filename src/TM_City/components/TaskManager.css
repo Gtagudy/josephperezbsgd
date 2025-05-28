@@ -2,9 +2,10 @@
     padding: 2rem;
     max-width: 1200px;
     margin: 0 auto;
-    height: calc(100vh - 200px);
+    height: calc(100vh - 100px);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .task-manager-grid {
@@ -15,15 +16,35 @@
     flex: 1;
     min-height: 0;
     height: 100%;
+    overflow: hidden;
 }
 
 .calendar-section {
-    position: sticky;
-    top: 100px;
+    position: relative;
     height: 100%;
-    overflow: hidden;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
+    padding-right: 0.5rem;
+    padding-bottom: 2rem;
+}
+
+.calendar-section::-webkit-scrollbar {
+    width: 8px;
+}
+
+.calendar-section::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.calendar-section::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.calendar-section::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .timeline-section {
