@@ -19,30 +19,37 @@ export function About() {
           <h3>Skills</h3>
           <div className="skills-grid">
             <div className="skill-category">
-              <h4>Frontend</h4>
+              <h4>Software Development</h4>
               <ul>
+                <li>C#</li>
+                <li>JavaScript</li>
+                <li>HTML/CSS</li>
                 <li>React</li>
                 <li>Three.js</li>
-                <li>HTML/CSS</li>
-                <li>JavaScript</li>
+                <li>React Three Fiber</li>
+                <li>Smack Studio</li>
+                <li>JetBrains Rider</li>
+                <li>Github</li>
+                <li>Trello</li>
+                <li>Visual Studio</li>
               </ul>
             </div>
             <div className="skill-category">
-              <h4>Backend</h4>
+              <h4>Game Development</h4>
               <ul>
-                <li>Node.js</li>
-                <li>Python</li>
-                <li>Databases</li>
-                <li>APIs</li>
+                <li>Unity</li>
+                <li>Unreal Engine</li>
+                <li>Smack Studio</li>
+                <li>Itch.io</li>
               </ul>
             </div>
             <div className="skill-category">
-              <h4>Tools</h4>
+              <h4>Etc</h4>
               <ul>
-                <li>Git</li>
-                <li>VS Code</li>
-                <li>Figma</li>
-                <li>Terminal</li>
+                <li>Longterm Development</li>
+                <li>Art</li>
+                <li>Writing</li>
+                <li>Proper use of Artificial Intelligence</li>
               </ul>
             </div>
           </div>
@@ -51,9 +58,7 @@ export function About() {
         <div className="about-section">
           <h3>Interests</h3>
           <p>
-            When I'm not coding, you can find me exploring new technologies,
-            contributing to open-source projects, or learning about the latest
-            trends in web development and 3D graphics.
+            When I'm not coding a game or learning new technology I am playing a game, making art or writing. While these are quite the projects to make you busy, I make sure to do the best I can balance my time and apply focus on my work.
           </p>
         </div>
       </div>

@@ -7,64 +7,51 @@ import { Contact } from './components/sections/Contact';
 import { TMCitySection } from './TM_City/TMCitySection';
 import './TM_City/TMCityStyles.css';
 
-const Navigation = ({ currentSection, setCurrentSection, setContentVisible, is3DEnabled }) => (
-    <nav className="top-nav">
-        <div className="nav-links">
-        <a 
-            href="#home" 
-            className={currentSection === 'home' ? 'active' : ''}
-            onClick={() => {
-                setCurrentSection('home');
-                setContentVisible(true);
-            }}
-        >
-            Home
-        </a>
-        <a 
-            href="#projects" 
-            className={currentSection === 'projects' ? 'active' : ''}
-            onClick={() => {
-                setCurrentSection('projects');
-                setContentVisible(true);
-            }}
-        >
-            Projects
-        </a>
-        <a 
-            href="#about" 
-            className={currentSection === 'about' ? 'active' : ''}
-            onClick={() => {
-                setCurrentSection('about');
-                setContentVisible(true);
-            }}
-        >
-            About
-        </a>
-        <a 
-            href="#contact" 
-            className={currentSection === 'contact' ? 'active' : ''}
-            onClick={() => {
-                setCurrentSection('contact');
-                setContentVisible(true);
-            }}
-        >
-            Contact
-        </a>
-        {!is3DEnabled && (
-            <a 
-                href="#tm-city" 
-                className={currentSection === 'tm-city' ? 'active' : ''}
-                onClick={() => {
-                    setCurrentSection('tm-city');
-                    setContentVisible(false);
-                }}
-            >
-                TM_City
-            </a>
-        )}
-        </div>
-    </nav>
-);
+const Navigation = ({ currentSection, setCurrentSection, setContentVisible, is3DEnabled }) => {
+    const handleSectionChange = (section) => {
+        setCurrentSection(section);
+        setContentVisible(true);
+        // Dispatch section change event
+        window.dispatchEvent(new CustomEvent('sectionChange', {
+            detail: { section }
+        }));
+    };
+
+    return (
+        <nav className="top-nav">
+            <div className="nav-links">
+                <a 
+                    href="#home" 
+                    className={currentSection === 'home' ? 'active' : ''}
+                    onClick={() => handleSectionChange('home')}
+                >
+                    Home
+                </a>
+                <a 
+                    href="#projects" 
+                    className={currentSection === 'projects' ? 'active' : ''}
+                    onClick={() => handleSectionChange('projects')}
+                >
+                    Projects
+                </a>
+                <a 
+                    href="#about" 
+                    className={currentSection === 'about' ? 'active' : ''}
+                    onClick={() => handleSectionChange('about')}
+                >
+                    About
+                </a>
+                <a 
+                    href="#contact" 
+                    className={currentSection === 'contact' ? 'active' : ''}
+                    onClick={() => handleSectionChange('contact')}
+                >
+                    Contact
+                </a>
+            </div>
+        </nav>
+    );
+};
 
 const ContentToggle = ({ isVisible, setContentVisible }) => (
     <button 
@@ -87,13 +74,13 @@ const ViewToggle = ({ is3DEnabled, setIs3DEnabled }) => (
 
 const Footer = () => (
     <footer>
-        <p>© 2024 Portfolio - Built with React Three Fiber</p>
+        <p>© 2025 Portfolio - Built with React Three Fiber + Cursor</p>
     </footer>
 );
 
 export default function App() {
     const [currentSection, setCurrentSection] = useState('home');
-    const [is3DEnabled, setIs3DEnabled] = useState(true);
+    const [is3DEnabled, setIs3DEnabled] = useState(false);
     const [contentVisible, setContentVisible] = useState(false);
 
     const renderSection = () => {

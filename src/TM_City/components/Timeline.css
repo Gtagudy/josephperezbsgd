@@ -1,17 +1,22 @@
 .timeline-container {
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
-    padding: 1.5rem;
-    margin: 1rem 0;
-    -webkit-user-select: none;
-    user-select: none;
+    padding: 1.5rem 0 0 0;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 300px;
 }
 
 .timeline-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
+    width: 90vw;
+    max-width: 1600px;
 }
 
 .timeline-header h2 {
@@ -28,200 +33,179 @@
     border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
-    transition: background 0.3s ease;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
 }
 
 .create-task-button:hover {
     background: #45a049;
 }
 
-.timeline {
+.timeline-bar-container {
     position: relative;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    padding: 1rem;
-    min-height: 300px;
-}
-
-.timeline-grid {
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    margin-top: 4rem;
+    width: 95vw;
+    max-width: 1600px;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-}
-
-.timeline-period {
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.period-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.period-name {
-    font-weight: 600;
-    color: white;
-    font-size: 1rem;
-}
-
-.period-time {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
-}
-
-.period-content {
-    position: relative;
-    padding: 1rem;
-    min-height: 120px;
 }
 
 .time-markers {
+    position: absolute;
+    top: -2.5rem;
+    left: 0;
+    right: 0;
     display: flex;
-    position: relative;
-    margin-bottom: 0.5rem;
+    justify-content: space-between;
+    padding: 0 2rem;
+    width: 100%;
 }
 
 .time-marker {
-    flex: 1;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     position: relative;
+    width: 60px;
 }
 
 .hour-label {
-    display: block;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.8rem;
-    margin-bottom: 0.25rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
 }
 
 .time-divisions {
-    height: 4px;
-    position: relative;
-    background: rgba(255, 255, 255, 0.1);
+    position: absolute;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1px;
 }
 
-.half-hour {
-    position: absolute;
-    left: 50%;
-    top: 0;
+.half-hour,
+.quarter-hour {
     width: 1px;
-    height: 100%;
+    height: 8px;
     background: rgba(255, 255, 255, 0.2);
 }
 
-.quarter-hour {
-    position: absolute;
-    width: 1px;
-    height: 50%;
-    background: rgba(255, 255, 255, 0.1);
+.half-hour {
+    height: 12px;
 }
 
-.quarter-hour:nth-child(2) {
-    left: 25%;
-}
-
-.quarter-hour:nth-child(3) {
-    left: 75%;
-}
-
-.period-tasks {
+.timeline-bar.super-wide {
     position: relative;
-    height: 80px;
-    margin-top: 0.5rem;
-}
-
-.timeline-task {
-    position: absolute;
-    height: 80px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
-    cursor: move;
-    transition: all 0.3s ease;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 95vw;
+    max-width: 1600px;
+    margin: 0 auto 2.5rem auto;
+    box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.10);
     display: flex;
     align-items: stretch;
 }
 
-.timeline-task:hover {
-    transform: scale(1.02);
-    z-index: 1;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+.timeline-task {
+    position: absolute;
+    height: 100%;
+    border-radius: 8px;
+    cursor: move;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    font-size: 1.15rem;
+    box-sizing: border-box;
 }
 
-.resize-handle {
-    width: 8px;
-    cursor: ew-resize;
-    background: rgba(255, 255, 255, 0.1);
-    transition: background 0.3s ease;
+.timeline-task.optimal {
+    opacity: 0.95;
+    font-weight: 600;
 }
 
-.resize-handle:hover {
-    background: rgba(255, 255, 255, 0.2);
+.timeline-task.filler {
+    background: #444857 !important;
+    color: #bbb;
+    opacity: 0.7;
+    font-style: italic;
 }
 
-.resize-handle.start {
-    border-top-left-radius: 4px;
-    border-bottom-left-radius: 4px;
-}
-
-.resize-handle.end {
-    border-top-right-radius: 4px;
-    border-bottom-right-radius: 4px;
-}
-
-.timeline-task.low {
-    background: rgba(76, 175, 80, 0.3);
-    border-left: 3px solid #4CAF50;
-}
-
-.timeline-task.medium {
-    background: rgba(255, 193, 7, 0.3);
-    border-left: 3px solid #FFC107;
-}
-
-.timeline-task.high {
-    background: rgba(255, 152, 0, 0.3);
-    border-left: 3px solid #FF9800;
-}
-
-.timeline-task.urgent {
-    background: rgba(244, 67, 54, 0.3);
-    border-left: 3px solid #F44336;
+.timeline-task.user {
+    border: 2.5px solid #fff;
+    font-weight: 700;
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
 }
 
 .task-content {
-    padding: 0.75rem;
     flex: 1;
-    overflow: hidden;
+    min-width: 0;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
     display: flex;
     flex-direction: column;
-    cursor: move;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 .task-content h4 {
     margin: 0 0 0.25rem 0;
-    font-size: 0.9rem;
     color: white;
-}
-
-.task-content p {
-    margin: 0 0 0.25rem 0;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 700;
+}
+
+.task-xp {
+    color: #ffd700;
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-right: 0.5rem;
 }
 
 .task-time {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: auto;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.resize-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 18px;
+    cursor: ew-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.resize-handle::before {
+    content: '';
+    width: 6px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
+}
+
+.resize-handle:hover::before {
+    background: #fff;
+}
+
+.resize-handle.start {
+    left: 0;
+}
+
+.resize-handle.end {
+    right: 0;
 } 

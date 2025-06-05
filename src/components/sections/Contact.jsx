@@ -15,40 +15,18 @@ export function Contact() {
           <div className="contact-methods">
             <div className="contact-method">
               <h4>📧 Email</h4>
-              <p>your.email@example.com</p>
+              <p>josephdperjr@gmail.com</p>
             </div>
             
             <div className="contact-method">
               <h4>💼 LinkedIn</h4>
-              <p>linkedin.com/in/yourprofile</p>
+              <p>www.linkedin.com/in/joseph-perez-659511236</p>
             </div>
             
             <div className="contact-method">
               <h4>🐱 GitHub</h4>
-              <p>github.com/yourusername</p>
+              <p>https://github.com/Gtagudy</p>
             </div>
-          </div>
-
-          <div className="contact-form">
-            <h3>Send a Message</h3>
-            <form>
-              <div className="form-group">
-                <label htmlFor="name">Name:</label>
-                <input type="text" id="name" placeholder="Your Name" />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="email">Email:</label>
-                <input type="email" id="email" placeholder="your@email.com" />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="message">Message:</label>
-                <textarea id="message" placeholder="Your message here..." rows="4"></textarea>
-              </div>
-              
-              <button type="submit" className="submit-btn">Send Message</button>
-            </form>
           </div>
         </div>
       </div>
